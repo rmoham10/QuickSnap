@@ -52,9 +52,11 @@ const Header = () => {
         }
 
         .box {
-          width: 17vh;
-          height: 15vh;
-          margin-top: 7vh;
+          position: absolute;      
+          top: 6.4vh;               
+          left: 0;                 
+          width: 110px;
+          height: 110px;   
           background-color: rgb(231, 10, 10);
           padding: 10px;
           display: flex;
@@ -79,7 +81,8 @@ const Header = () => {
         }
 
         .nav-links {
-          margin-left: 850px;
+          margin-left: 1000px;
+          margin-top: 150px;
           gap: 2rem;
           list-style: none;
           font-size: 1.5rem;

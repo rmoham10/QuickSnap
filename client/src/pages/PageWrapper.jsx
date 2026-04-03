@@ -13,7 +13,7 @@ const PageWrapper = ({ children }) => {
 
 const styles = {
   main: {
-    paddingTop: '22vh', // same as header height so content is below the fixed header
+    paddingTop: '15vh',
     width: '100%',
     minHeight: '100vh',
     boxSizing: 'border-box',
