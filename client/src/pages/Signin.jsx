@@ -2,7 +2,6 @@ import { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { useNavigate, Link } from 'react-router-dom';
 import api from '../api/axios';
-import PageWrapper from './PageWrapper';
 
 export default function Signin() {
   const { register, handleSubmit, formState: { errors } } = useForm();
@@ -11,79 +10,280 @@ export default function Signin() {
   const navigate = useNavigate();
 
   const onSubmit = async (data) => {
-    setServerError(''); setLoading(true);
+    setServerError('');
+    setLoading(true);
     try {
       const res = await api.post('/auth/signin', data);
       localStorage.setItem('befit_token', res.data.token);
       localStorage.setItem('befit_user', JSON.stringify(res.data.user));
-      navigate('/dashboard');
+      const role = res.data.user?.role;
+      if (role === 'Admin') navigate('/admin-dashboard');
+      else if (role === 'Employee') navigate('/employee-dashboard');
+      else navigate('/dashboard');
     } catch (err) {
       const e = err.response?.data;
-      if (e?.needsVerification) {
-        await api.post('/auth/send-otp', { phone: e.phone });
+      if (e?.needsEmailVerification) navigate('/verify-email', { state: { email: e.email } });
+      else if (e?.needsVerification) {
+        try { await api.post('/auth/send-otp', { phone: e.phone }); } catch {}
         navigate('/verify-phone', { state: { phone: e.phone } });
-      } else {
-        setServerError(e?.error || 'Something went wrong');
-      }
-    } finally {
-      setLoading(false);
-    }
+      } else setServerError(e?.error || 'Something went wrong');
+    } finally { setLoading(false); }
   };
 
   return (
-    <PageWrapper>
-        {
-            <div style={styles.page}>
-            <div style={styles.card}>
-                <p style={styles.sub}>Sign in to your account</p>
+    <>
+      {/* ================= HEADER ================= */}
+      <header className="header">
+        <div className="logo">
+          <Link to="/">QuickSign</Link>
+        </div>
+        <nav>
+          <ul className="nav-links">
+            <li><Link to="/">Home</Link></li>
+            <li><Link to="/about">About</Link></li>
+            <li><Link to="/contact">Contact</Link></li>
+            <li><Link to="/signup" className="signup-btn">Sign Up</Link></li>
+          </ul>
+        </nav>
+      </header>
 
-                <form onSubmit={handleSubmit(onSubmit)} style={styles.form}>
-                <Field label="Email" error={errors.email?.message}>
-                    <input style={styles.input} type="email" placeholder="jane@email.com"
-                    {...register('email', { required: 'Email is required' })} />
-                </Field>
+      {/* ================= SIGNIN FORM ================= */}
+      <div className="page">
+        <div className="card">
+          <h2 className="title">Sign in to your account</h2>
+          <form onSubmit={handleSubmit(onSubmit)} className="form">
+            <Field label="Email" error={errors.email?.message}>
+              <input
+                type="email"
+                placeholder="you@example.com"
+                {...register('email', { required: 'Email required' })}
+              />
+            </Field>
+            <Field label="Password" error={errors.password?.message}>
+              <input
+                type="password"
+                placeholder="Your password"
+                {...register('password', { required: 'Password required' })}
+              />
+            </Field>
+            {serverError && <p className="error">{serverError}</p>}
+            <button type="submit" className="btn" disabled={loading}>
+              {loading ? 'Signing in...' : 'Sign In'}
+            </button>
+          </form>
+          <p className="footer-text">
+            No account? <Link to="/signup">Sign Up</Link>
+          </p>
+        </div>
+      </div>
 
-                <Field label="Password" error={errors.password?.message}>
-                    <input style={styles.input} type="password" placeholder="Your password"
-                    {...register('password', { required: 'Password is required' })} />
-                </Field>
+       <footer className="footer">
 
-                {serverError && <p style={styles.error}>{serverError}</p>}
+        <h3>QuickSign</h3>
 
-                <button style={styles.btn} type="submit" disabled={loading}>
-                    {loading ? 'Signing in…' : 'Sign in'}
-                </button>
-                </form>
+        <p>
+          Fast • Secure • Modern User Management
+        </p>
 
-                <p style={styles.footer}>
-                No account? <Link to="/signup" style={styles.link}>Sign up</Link>
-                </p>
-            </div>
-            </div>
+        <div className="footer-links">
+
+          <Link to="/">Home</Link>
+          <Link to="/about">About</Link>
+          <Link to="/contact">Contact</Link>
+
+        </div>
+
+      </footer>
+
+      {/* ================= CSS ================= */}
+      <style>{`
+        @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&display=swap');
+        *{margin:0; padding:0; box-sizing:border-box; font-family:Poppins,sans-serif;}
+
+        /* HEADER SAME AS HOMEPAGE */
+        .header{
+        position:fixed;
+        top:0;
+        width:100%;
+        display:flex;
+        justify-content:space-between;
+        align-items:center;
+        padding:18px 40px;
+        background:rgba(0,0,0,0.5);
+        backdrop-filter:blur(10px);
+        z-index:1000;
         }
-    </PageWrapper>
+
+        .logo a{
+        color:white;
+        font-size:26px;
+        font-weight:bold;
+        text-decoration:none;
+        }
+
+        .logo a:hover{
+        color:rgba(200, 200, 200, 0.7);
+        }
+
+        .nav-links{
+        display:flex;
+        gap:30px;
+        list-style:none;
+        align-items:center;
+        }
+
+        .nav-links a{
+        color:white;
+        text-decoration:none;
+        font-weight:500;
+        }
+
+        .nav-links a:hover{
+        color:rgba(200, 200, 200, 0.7);
+        }
+
+        .signup-btn {
+          padding: 8px 18px;
+          border-radius: 30px;
+          background: linear-gradient(90deg, #7c3aed, #ff006e);
+          color: white;
+          transition: transform 0.3s ease, box-shadow 0.3s ease;
+          display: inline-block;         /* ensures padding works nicely */
+        }
+
+        .signup-btn:hover {
+          transform: scale(1.1);        /* grows on hover */
+          box-shadow: 0 6px 15px rgba(0,0,0,0.2); /* optional pop effect */
+        }
+
+        /* PAGE BACKGROUND - Vibrant Gen Z */
+        .page{
+          height:80.1vh;
+          display:flex;
+          justify-content:center;
+          align-items:center;
+          padding-top:50px;
+          background:linear-gradient(135deg,#7c3aed,#ff006e);
+        }
+
+        /* CARD */
+        .card{
+          background: linear-gradient(135deg, #0f2027, #203a43, #2c5364);
+          backdrop-filter: blur(10px);
+          padding: 40px;
+          border-radius: 20px;
+          width: 100%;
+          max-width: 420px;
+          box-shadow: 0 15px 40px rgba(0, 0, 0, 0.2);
+          border: 1px solid rgba(0, 0, 0, 0.1);
+
+        }
+
+        .title{
+          text-align:center;
+          margin-bottom:25px;
+          color:white;
+          font-size:1.9rem;
+          font-weight:700;
+        }
+
+        .form{ display:flex; flex-direction:column; gap:16px; }
+
+        .field{ display:flex; flex-direction:column; }
+        .field label{
+          font-size:14px;
+          font-weight:600;
+          margin-bottom:5px;
+          color:white;
+          text-shadow:1px 1px 2px rgba(0,0,0,0.3);
+        }
+        .field input{
+          padding:12px;
+          border-radius:12px;
+          border:none;
+          font-size:14px;
+          outline:none;
+          background: rgba(255,255,255,0.25);
+          color:#fff;
+          font-weight:500;
+          box-shadow: inset 0 2px 5px rgba(0,0,0,0.2);
+        }
+        .field input::placeholder{ color: rgba(255,255,255,0.7); }
+
+        .btn{
+          margin-top:12px;
+          padding:12px;
+          border:none;
+          border-radius:12px;
+          font-size:16px;
+          font-weight:700;
+          background: linear-gradient(135deg, #0f2027, #203a43, #2c5364);
+          color:white;
+          cursor:pointer;
+          transition: all 0.3s ease;
+        }
+        .btn:hover{
+          transform: scale(1.05);
+          background:linear-gradient(135deg,#7c3aed,#ff006e);
+        }
+
+        .error{
+          color:#ff6b6b;
+          font-size:13px;
+          margin-top:5px;
+        }
+
+        .footer-text{
+          text-align:center;
+          margin-top:20px;
+          font-size:14px;
+          color:white;
+          text-shadow:1px 1px 2px rgba(0,0,0,0.3);
+        }
+        .footer-text a{
+          color:#7c3aed;
+          font-weight:bold;
+          font-weight:700;
+          text-decoration:none;
+        }
+        .footer-text a:hover{
+        color:#ff006e;
+        text-decoration:none;
+        }
+
+        .footer{
+        padding:40px;
+        background:black;
+        color:white;
+        text-align:center;
+        }
+
+        .footer-links{
+        display:flex;
+        justify-content:center;
+        gap:20px;
+        margin-top:10px;
+        }
+
+        .footer-links a{
+        color:white;
+        text-decoration:none;
+        }
+
+        .footer-links a:hover{
+        color:rgba(200, 200, 200, 0.7);
+        }
+      `}</style>
+    </>
   );
 }
 
 function Field({ label, error, children }) {
   return (
-    <div style={{ marginBottom: 16 }}>
-      <label style={{ fontSize: 13, fontWeight: 500, display: 'block', marginBottom: 6 }}>{label}</label>
+    <div className="field">
+      <label>{label}</label>
       {children}
-      {error && <p style={{ color: '#e24b4a', fontSize: 12, marginTop: 4 }}>{error}</p>}
+      {error && <p className="error">{error}</p>}
     </div>
   );
 }
-
-const styles = {
-  page:  { minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#f5f5f3', fontFamily: 'system-ui, sans-serif' },
-  card:  { background: '#fff', borderRadius: 16, padding: '40px 36px', width: '100%', maxWidth: 420, boxShadow: '0 2px 16px rgba(0,0,0,0.08)' },
-  logo:  { fontSize: 28, fontWeight: 700, margin: '0 0 4px', color: '#1a1a1a' },
-  sub:   { color: '#888', fontSize: 14, margin: '0 0 28px' },
-  form:  { display: 'flex', flexDirection: 'column' },
-  input: { width: '100%', padding: '10px 12px', borderRadius: 8, border: '1px solid #ddd', fontSize: 14, boxSizing: 'border-box' },
-  btn:   { marginTop: 8, padding: '12px', background: '#534AB7', color: '#fff', border: 'none', borderRadius: 8, fontSize: 15, fontWeight: 500, cursor: 'pointer' },
-  error: { color: '#e24b4a', fontSize: 13, margin: '0 0 12px' },
-  footer:{ textAlign: 'center', fontSize: 13, color: '#888', marginTop: 20 },
-  link:  { color: '#534AB7', textDecoration: 'none', fontWeight: 500 },
-};
